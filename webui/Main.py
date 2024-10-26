@@ -13,11 +13,7 @@ if root_dir not in sys.path:
 import os
 import platform
 from uuid import uuid4
-
 import streamlit as st
-from openai import OpenAI
-from io import BytesIO
-from PIL import Image
 from loguru import logger
 import requests
 
@@ -154,13 +150,10 @@ def tr(key):
     loc = locales.get(st.session_state["ui_language"], {})
     return loc.get("Translation", {}).get(key, key)
 
-
-st.write(tr("Get Help"))
-
 llm_provider = config.app.get("llm_provider", "").lower()
 
 if not config.app.get("hide_config", False):
-    with st.expander(tr("Basic Settings"), expanded=True):
+    with st.expander(tr("Basic Settings"), expanded=False):
         config_panels = st.columns(3)
         left_config_panel = config_panels[0]
         middle_config_panel = config_panels[1]
@@ -180,7 +173,18 @@ if not config.app.get("hide_config", False):
                 code = selected_language.split(" - ")[0].strip()
                 st.session_state["ui_language"] = code
                 config.ui["language"] = code
-
+                if (code == "de"):
+                    config.ui["voice_name"] = "de-AT-IngridNeural-Female"
+                    config.ui["font_name"] = "UTM Kabel KT.ttf"
+                elif (code == "zh"):
+                    config.ui["voice_name"] = "zh-CN-XiaoxiaoNeural-Female"
+                    config.ui["font_name"] = "STHeitiLight.ttc"
+                elif (code == "vi"):
+                    config.ui["voice_name"] = "vi-VN-HoaiMyNeural-Female"
+                    config.ui["font_name"] = "UTM Kabel KT.ttf"
+                else:
+                    config.ui["voice_name"] = "en-CA-ClaraNeural-Female"
+                    config.ui["font_name"] = "MicrosoftYaHeiBold.ttc"
             # 是否禁用日志显示
             hide_log = st.checkbox(
                 tr("Hide Log"), value=config.app.get("hide_log", False)
@@ -471,15 +475,23 @@ with main_panel:
         params.video_terms = st.text_area(
             tr("Video Keywords"), value=st.session_state["video_terms"], height=50
         )
-#################################################################################
         
-
-        params.video_source = "pexels"
+        params.video_source = "pixabay"
         config.app["video_source"] = params.video_source
         
         params.video_concat_mode = VideoConcatMode.random.value
 
-        params.video_aspect = VideoAspect.landscape.value
+        with st.container(border=True):
+            video_aspect_ratios = [
+                (tr("Portrait"), VideoAspect.portrait.value),
+                (tr("Landscape"), VideoAspect.landscape.value),
+            ]
+            selected_index = st.selectbox(
+                tr("Video Ratio"),
+                options=range(len(video_aspect_ratios)),  # 使用索引作为内部选项值
+                format_func=lambda x: video_aspect_ratios[x][0],  # 显示给用户的是标签
+            )
+            params.video_aspect = VideoAspect(video_aspect_ratios[selected_index][1])
 
         params.video_clip_duration = 3
 
@@ -523,30 +535,23 @@ image_button = st.button(tr("Generate Images"), use_container_width=True, type="
 
 if image_button:
     def split_paragraph(paragraph):
-        # Step 1: Find all sentences ending with a full stop
         sentences = re.split(r'(?<=\.)\s+', paragraph.strip())
-        
-        # Step 2: Get the number of sentences
         num_sentences = len(sentences)
-        
-        # Step 3: Decide how many parts to split into based on the number of sentences
         if num_sentences < 6:
-            return [" ".join(sentences[:])]  # Fewer than 4 sentences, return as one part
+            return [" ".join(sentences[:])]
         elif num_sentences < 14:
-            # Split into two parts
             mid = num_sentences // 2
             part1 = " ".join(sentences[:mid])
             part2 = " ".join(sentences[mid:])
             return [part1, part2]
         else:
-            # Split into three parts
             part_size = num_sentences // 3
             part1 = " ".join(sentences[:part_size])
             part2 = " ".join(sentences[part_size:2*part_size])
             part3 = " ".join(sentences[2*part_size:])
             return [part1, part2, part3]
-    paragraphs = split_paragraph(params.video_script)
-    # Function to generate images using DALL-E
+    res = params.video_script
+    paragraphs = split_paragraph(res)
     def generate_image(prompt):
         url = "https://yescale.one/v1/images/generations"
         
@@ -556,7 +561,7 @@ if image_button:
         payload = {
             "prompt": prompt,
             "model": "dall-e-3",
-            "n": 1,  # Generate three images
+            "n": 1,
             "quality": "standard",
             "response_format": "url",
             "size": "1024x1024",

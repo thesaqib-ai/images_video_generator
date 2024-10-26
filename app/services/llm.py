@@ -253,7 +253,7 @@ def _generate_response(prompt: str) -> str:
 
 
 def generate_script(
-    video_subject: str, language: str = "", paragraph_number: int = 3
+    video_subject: str, language: str = "", paragraph_number: int = 1
 ) -> str:
     prompt = f"""
 # Role: Video Script Generator
@@ -270,6 +270,7 @@ Generate a script for a video, depending on the subject of the video.
 6. do not include "voiceover", "narrator" or similar indicators of what should be spoken at the beginning of each paragraph or line.
 7. you must not mention the prompt, or anything about the script itself. also, never talk about the amount of paragraphs or lines. just write the script.
 8. respond in the same language as the video subject.
+9. Don't exceed 1000 characters.
 
 # Initialization:
 - video subject: {video_subject}
@@ -344,6 +345,9 @@ Generate {amount} search terms for stock videos, depending on the subject of a v
 ## Context:
 ### Video Subject
 {video_subject}
+
+### Video Script
+{video_script}
 
 Please note that you must use English for generating video search terms; Chinese is not accepted.
 """.strip()

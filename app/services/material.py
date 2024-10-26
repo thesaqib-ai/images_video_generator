@@ -34,7 +34,7 @@ def get_api_key(cfg_key: str):
 def search_videos_pexels(
     search_term: str,
     minimum_duration: int,
-    video_aspect: VideoAspect = VideoAspect.landscape,
+    video_aspect: VideoAspect = VideoAspect.portrait,
 ) -> List[MaterialInfo]:
     aspect = VideoAspect(video_aspect)
     video_orientation = aspect.name
@@ -99,7 +99,7 @@ def search_videos_pixabay(
     params = {
         "q": search_term,
         "video_type": "all",  # Accepted values: "all", "film", "animation"
-        "per_page": 50,
+        "per_page": 5,
         "key": api_key,
     }
     query_url = f"https://pixabay.com/api/videos/?{urlencode(params)}"
@@ -127,7 +127,7 @@ def search_videos_pixabay(
                 video = video_files[video_type]
                 w = int(video["width"])
                 h = int(video["height"])
-                if w >= video_width:
+                if w == video_width and h == video_height:
                     item = MaterialInfo()
                     item.provider = "pixabay"
                     item.url = video["url"]
@@ -187,7 +187,7 @@ def download_videos(
     task_id: str,
     search_terms: List[str],
     source: str = "pexels",
-    video_aspect: VideoAspect = VideoAspect.landscape,
+    video_aspect: VideoAspect = VideoAspect.portrait,
     video_contact_mode: VideoConcatMode = VideoConcatMode.random,
     audio_duration: float = 0.0,
     max_clip_duration: int = 5,
